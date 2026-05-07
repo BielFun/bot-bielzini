@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Bielzini - Promoções Copa 2026</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
+        body { background: #0a0a0a; color: #fff; }
+       .header { background: linear-gradient(135deg, #008000, #004d00); padding: 20px; text-align: center; }
+       .header h1 { font-size: 28px; margin-bottom: 10px; }
+       .tabs { display: flex; background: #1a1a1a; }
+       .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; border-bottom: 3px solid transparent; }
+       .tab.active { border-bottom: 3px solid #008000; background: #222; }
+       .content { padding: 20px; }
+       .painel { display: none; }
+       .painel.active { display: block; }
+       .card { background: #1a1a1a; border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #008000; }
+       .card img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+       .card h3 { color: #008000; margin-bottom: 8px; }
+       .card p { margin-bottom: 10px; color: #ccc; }
+       .card a { background: #008000; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block; }
+       .login { max-width: 400px; margin: 50px auto; background: #1a1a1a; padding: 30px; border-radius: 10px; }
+       .login input { width: 100%; padding: 12px; margin: 10px 0; background: #333; border: 1px solid #008000; color: white; border-radius: 5px; }
+       .login button { width: 100%; padding: 12px; background: #008000; border: none; color: white; border-radius: 5px; cursor: pointer; }
+       .dev-area textarea { width: 100%; height: 120px; background: #333; border: 1px solid #008000; color: white; padding: 10px; border-radius: 5px; margin: 10px 0; }
+       .dev-area button { background: #008000; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; }
+       .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="login" class="login">
+        <h2 style="text-align:center; margin-bottom:20px; color:#008000;">🤖 Bot Bielzini</h2>
+        <input type="password" id="senha" placeholder="Senha de ADM">
+        <button onclick="entrar()">ENTRAR</button>
+    </div>
+
+    <div id="app" class="hidden">
+        <div class="header">
+            <h1>🤖 BOT BIELZINI</h1>
+            <p>Promoções Braba da Copa 2026 💚</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="abrirAba('promocoes')">PROMOÇÕES</div>
+            <div class="tab" id="tabDev" onclick="abrirAba('painel')" style="display:none;">PAINEL DEV</div>
+        </div>
+
+        <div class="content">
+            <div id="promocoes" class="painel active">
+                <div id="listaPromos"></div>
+            </div>
+
+            <div id="painel" class="painel">
+                <div class="dev-area">
+                    <h3>👑 Painel Dev - BebelDev</h3>
+                    <p>Cola o texto assim: <br><code>Produto e meu link: https://site.com desc: ta mt brabo sla</code></p>
+                    <textarea id="textoBot" placeholder="Produto e meu link: https://shopee.com.br/item desc: descrição braba tmj"></textarea>
+                    <button onclick="postarPromo()">POSTAR PROMO</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ehAdm = false;
+
+        function entrar() {
+            const senha = document.getElementById('senha').value;
+            if (senha === 'BebelDev👑') {
+                ehAdm = true;
+                document.getElementById('tabDev').style.display = 'block';
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+            } else {
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+            }
+            carregarPromos();
+        }
+
+        function abrirAba(aba) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.painel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(aba).classList.add('active');
+        }
+
+        async function postarPromo() {
+            const texto = document.getElementById('textoBot').value;
+
+            const regex = /Produto e meu link:\s*(https?:\/\/[^\s]+)\s*desc:\s*(.+)/i;
+            const match = texto.match(regex);
+
+            if (!match) {
+                alert('Formato errado! Usa: Produto e meu link: https://link.com desc: descrição');
+                return;
+            }
+
+            const link = match[1];
+            const desc = match[2];
+
+            const res = await fetch('/api/promocao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ texto: 'Promo Bielzini', link, desc })
+            });
+
+            if (res.ok) {
+                document.getElementById('textoBot').value = '';
+                alert('Promo postada! 💚');
+                carregarPromos();
+                abrirAba('promocoes');
+            } else {
+                alert('Deu erro ao postar');
+            }
+        }
+
+        async function carregarPromos() {
+            const res = await fetch('/api/promocoes');
+            const promos = await res.json();
+            const lista = document.getElementById('listaPromos');
+
+            if (promos.length === 0) {
+                lista.innerHTML = '<p style="text-align:center; color:#666;">Nenhuma promo ainda. Só o ADM pode postar.</p>';
+                return;
+            }
+
+            lista.innerHTML = promos.map(p => `
+                <div class="card">
+                    <img src="${p.imagem}" alt="Promo">
+                    <h3>${p.texto}</h3>
+                    <p>${p.descricao}</p>
+                    <a href="${p.link}" target="_blank">PEGAR PROMO</a>
+                    <p style="font-size:12px; color:#666; margin-top:10px;">Postado em: ${p.data}</p>
+                </div>
+            `).join('');
+        }
+
+        setInterval(carregarPromos, 10000);
+    </script>
+</body>
+</html>
